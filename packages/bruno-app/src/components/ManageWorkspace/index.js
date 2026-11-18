@@ -159,20 +159,18 @@ const ManageWorkspace = () => {
                       <span>{getRevealInFolderLabel()}</span>
                     </button>
                   )}
-                  {!isDefault && (
-                    <MenuDropdown
-                      placement="bottom-end"
-                      items={[
-                        { id: 'open-in-terminal', label: 'Open in Terminal', onClick: () => openDevtoolsAndSwitchToTerminal(dispatch, workspace.pathname) },
-                        { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
-                        { id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }
-                      ]}
-                    >
-                      <button className="more-actions-btn" data-testid="workspace-actions-trigger">
-                        <IconDots size={14} strokeWidth={1.5} />
-                      </button>
-                    </MenuDropdown>
-                  )}
+                  <MenuDropdown
+                    placement="bottom-end"
+                    items={[
+                      ...(isDefault ? [] : [{ id: 'open-in-terminal', label: 'Open in Terminal', onClick: () => openDevtoolsAndSwitchToTerminal(dispatch, workspace.pathname) }]),
+                      { id: 'rename', label: 'Rename', onClick: () => handleRenameClick(workspace) },
+                      ...(isDefault ? [] : [{ id: 'remove', label: 'Remove', onClick: () => handleCloseClick(workspace) }])
+                    ]}
+                  >
+                    <button className="more-actions-btn" data-testid="workspace-actions-trigger">
+                      <IconDots size={14} strokeWidth={1.5} />
+                    </button>
+                  </MenuDropdown>
                 </div>
               </div>
             );

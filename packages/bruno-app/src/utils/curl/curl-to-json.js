@@ -133,10 +133,12 @@ const curlToJson = (curlCommand) => {
 
   // curl automatically prepends 'http' if the scheme is missing, but python fails and returns an error
   // we tack it on here to mimic curl
-  if (!request.url.match(/https?:/)) {
+  // A URL that starts with a `{{variable}}` is left as is: the variable normally holds the scheme.
+  const needsScheme = (url) => !url.match(/https?:/) && !url.startsWith('{{');
+  if (needsScheme(request.url)) {
     request.url = 'http://' + request.url;
   }
-  if (!request.urlWithoutQuery.match(/https?:/)) {
+  if (needsScheme(request.urlWithoutQuery)) {
     request.urlWithoutQuery = 'http://' + request.urlWithoutQuery;
   }
 

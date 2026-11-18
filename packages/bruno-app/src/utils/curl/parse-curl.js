@@ -43,11 +43,36 @@ const FLAG_CATEGORIES = {
  * - Handle T (file upload)
  */
 const parseCurlCommand = (curl) => {
-  const cleanedCommand = cleanCurlCommand(curl);
+  // `{{variable}}` placeholders break URL detection, so they are swapped for
+  // domain-like tokens while parsing and put back in the result afterwards.
+  const placeholders = [];
+  const tokenized = curl.replace(/\{\{[^{}]+\}\}/g, (match) => {
+    placeholders.push(match);
+    return `zzbrunovar${placeholders.length - 1}x.invalid`;
+  });
+
+  const cleanedCommand = cleanCurlCommand(tokenized);
   const parsedArgs = parse(cleanedCommand);
   const request = buildRequest(parsedArgs);
 
-  return cleanRequest(postBuildProcessRequest(request));
+  return restorePlaceholders(cleanRequest(postBuildProcessRequest(request)), placeholders);
+};
+
+const restorePlaceholders = (value, placeholders) => {
+  if (!placeholders.length) return value;
+  if (typeof value === 'string') {
+    return value.replace(/zzbrunovar(\d+)x\.invalid/g, (token, index) => placeholders[Number(index)] ?? token);
+  }
+  if (Array.isArray(value)) return value.map((entry) => restorePlaceholders(entry, placeholders));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        restorePlaceholders(key, placeholders),
+        restorePlaceholders(entry, placeholders)
+      ])
+    );
+  }
+  return value;
 };
 
 /**
@@ -400,7 +425,9 @@ const setURL = (request, url) => {
 
   // Add default protocol if none is present
   let processedUrl = urlString;
-  if (!request.url && !urlString.match(/^[a-zA-Z]+:\/\//)) {
+  // A URL that starts with a `{{variable}}` placeholder usually carries its own scheme.
+  const startsWithPlaceholder = /^zzbrunovar\d+x\.invalid/.test(urlString);
+  if (!request.url && !startsWithPlaceholder && !urlString.match(/^[a-zA-Z]+:\/\//)) {
     processedUrl = 'https://' + urlString;
   }
 

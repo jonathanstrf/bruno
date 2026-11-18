@@ -1,0 +1,41 @@
+name: Build Windows app
+
+# Manual only: run it from the Actions tab. Produces an unsigned, unpacked x64 app zipped as a downloadable artifact.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Enable long paths
+        run: git config --system core.longpaths true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install and build internal packages
+        run: npm run setup
+
+      - name: Build web app
+        run: npm run build:web
+
+      - name: Package Windows app
+        run: node scripts/package-win.cjs
+
+      - name: Zip the app
+        run: Compress-Archive -Path packages/bruno-electron/out/win-unpacked/* -DestinationPath bruno-win-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bruno-win-x64
+          path: bruno-win-x64.zip
+          if-no-files-found: error

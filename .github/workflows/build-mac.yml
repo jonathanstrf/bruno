@@ -1,0 +1,43 @@
+name: Build macOS app
+
+# Manual only: run it from the Actions tab. Produces an unsigned .dmg and .zip as a downloadable artifact.
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: CPU architecture to build
+        type: choice
+        options: [arm64, x64]
+        default: arm64
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install and build internal packages
+        run: npm run setup
+
+      - name: Build web app
+        run: npm run build:web
+
+      - name: Package macOS app
+        run: node scripts/package-mac.cjs ${{ inputs.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bruno-mac-${{ inputs.arch }}
+          path: |
+            packages/bruno-electron/out/*.dmg
+            packages/bruno-electron/out/*.zip
+          if-no-files-found: error
